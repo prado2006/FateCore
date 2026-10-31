@@ -1,0 +1,15 @@
+# Классы игроков. Смена — раз в change-days дней.
+change-days: 7
+classes:
+  kuznec:
+    title: "Кузнец"
+  voin:
+    title: "Воин"
+  strannik:
+    title: "Странник"
+# Данные игроков заполняет плагин. Пример:
+# players:
+#   069a79f4-44e9-4726-a5be-fca90e38aaf5:
+#     class: voin
+#     changedAt: 1767225600000
+players: {}

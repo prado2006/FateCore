@@ -1,0 +1,209 @@
+# FateCore config. Миры: hub, world_survival, world_bedwars, world_skywars
+# Группы LuckPerms: default, vip, premium, legend, elite, mythic, titan, admin, owner, quest
+
+donate:
+  url: "https://easyDonate.example/fatecore"   # TODO: заменить на URL магазина EasyDonate
+
+donate-multipliers:
+  vip: 1.10
+  premium: 1.25
+  legend: 1.40
+  elite: 1.60
+  mythic: 1.85
+  titan: 2.20
+
+onboarding:
+  spawn: {world: hub, x: 0, y: 65, z: 0}            # TODO: заменить на реальные из F3 (COORDINATES.md)
+  # Приветствие в чат после /login. %player% = ник
+  welcome:
+    - "&6Добро пожаловать на Эхо Судьбы, &f%player%&6!"
+    - "&7Режимы: &fSurvival&7, &fBedWars&7, &fSkyWars&7. Все команды: &e/help"
+    - "&7Эхо — очки за игру: &e/echo&7, тратить в &e/shop"
+  # Книга-гайд, выдаётся при первом входе (6 страниц, ТЗ §6.1)
+  book:
+    title: "Гид новичка"
+    author: "FateCore"
+    pages:
+      - "Кто ты
+
+Выбери класс: Кузнец, Воин или Странник.
+
+Смена класса — раз в 7 дней."
+      - "Куда идти
+
+Survival — строй и ферми. BedWars — PvP за кровати. SkyWars — риск и лут."
+      - "Как играть
+
+Порталы в хабе ведут в режимы.
+
+/kit — набор привилегии.
+/sethome — сохранить дом."
+      - "Правила
+
+Без читов.
+Без гриферства.
+Уважение к игрокам."
+      - "Эхо
+
+Эхо — очки за игру. Копишь → тратишь в /shop на косметику, кейсы, бусты. Не даёт силы в бою."
+      - "Квесты и донат
+
+Квестовый Мастер в хабе даёт 3 задания в день — /quests. Донат ускоряет Эхо, но не даёт силы — /donate."
+  # Таблички хаба. Включать (enabled: true) только после замены координат: плагин ставит блок-табличку в этой точке.
+  signs:
+    survival:
+      enabled: false
+      location: {world: hub, x: 0, y: 65, z: 0}     # TODO: заменить на реальные из F3
+      lines: ["Survival", "Строй и ферми"]
+    bedwars:
+      enabled: false
+      location: {world: hub, x: 0, y: 65, z: 0}     # TODO: заменить на реальные из F3
+      lines: ["BedWars", "PvP за кровати"]
+    skywars:
+      enabled: false
+      location: {world: hub, x: 0, y: 65, z: 0}     # TODO: заменить на реальные из F3
+      lines: ["SkyWars", "Риск и лут"]
+    guide:
+      enabled: false
+      location: {world: hub, x: 0, y: 65, z: 0}     # TODO: заменить на реальные из F3 (гид-площадка)
+      lines: ["НАЧНИ ЗДЕСЬ", "/help  /echo", "/quests", "/donate"]
+
+quest:
+  npc:
+    location: {world: hub, x: 5, y: 65, z: 5}       # TODO: заменить на реальные из F3 (Квестовый Мастер)
+
+# Порталы хаба. Включайте (enabled: true) только после замены координат:
+# при 0,65,0 портал совпал бы со спавном новичков.
+portals:
+  cooldown-seconds: 3
+  survival:
+    enabled: false
+    trigger: {world: hub, x: 0, y: 65, z: 0, radius: 1.5}   # TODO: заменить на реальные из F3
+    target-world: world_survival
+  bedwars:
+    enabled: false
+    trigger: {world: hub, x: 0, y: 65, z: 0, radius: 1.5}   # TODO: заменить на реальные из F3
+    target-world: world_bedwars
+  skywars:
+    enabled: false
+    trigger: {world: hub, x: 0, y: 65, z: 0, radius: 1.5}   # TODO: заменить на реальные из F3
+    target-world: world_skywars
+
+
+# Подсказки в чат: интервал, сек. Тексты — learn.tips
+tips-interval-seconds: 600
+
+classes:
+  change-days: 7        # основной параметр — classes.yml, здесь запасной
+
+perks:
+  combat-seconds: 10
+
+# КД /sethome по тирам, сек. Берётся минимум по группам игрока (с наследованием).
+# Кулдаун sethome и back в Essentials (command-cooldowns) отключён: ими управляет FateCore.
+sethome-tiers:
+  default: 30
+  vip: 30
+  premium: 20
+  legend: 20
+  elite: 10
+  mythic: 10
+  titan: 0
+  admin: 0
+  owner: 0
+
+# /back: КД для всех, у кого есть право essentials.back, кроме групп из списка
+back-cooldown-seconds: 3600
+back-no-cooldown: [mythic, titan, admin, owner]
+
+# Потолок /speed по тирам (максимум по группам игрока). Нет группы в списке = /speed запрещён.
+speed-tiers:
+  elite: 1
+  titan: 2
+  admin: 10
+  owner: 10
+
+# Лимиты домов (должны совпадать с sethome-multiple в plugins/Essentials/config.yml).
+# bonus9 — только для «+1 дом» у титана; выдаётся временным правом через /shop.
+home-limits:
+  default: 2
+  vip: 3
+  premium: 4
+  legend: 5
+  elite: 6
+  mythic: 7
+  titan: 8
+  bonus9: 9
+home-bonus-days: 7
+
+# Обучение игрока (ТЗ §6.1). Все команды работают только после /login.
+learn:
+  help:
+    header: "&6=== Команды сервера ==="
+    lines:
+      - "&e/help &7— все команды"
+      - "&e/echo &7— твой баланс Эхо"
+      - "&e/kit &7— набор привилегии"
+      - "&e/sethome &7— сохранить дом"
+      - "&e/quests &7— задания Квестового Мастера"
+      - "&e/shop &7— магазин за Эхо"
+      - "&e/donate &7— привилегии"
+      - "&e/rules &7— правила"
+  # /shop: GUI 27 слотов. Цены — в Эхо (Vault + EssentialsX). enabled: false = «Временно недоступен».
+  shop:
+    title: "&8Магазин Эхо"
+    categories:
+      cosmetic: {slot: 10, title: "Косметика", icon: NETHER_STAR}
+      cases: {slot: 12, title: "Кейсы", icon: CHEST}
+      boosts: {slot: 14, title: "Бусты", icon: CLOCK}
+    items:
+      - {id: prefix, category: cosmetic, name: "Префикс", icon: OAK_SIGN, price: 300, slot: 11}
+      - {id: pet, category: cosmetic, name: "Питомец", icon: BONE, price: 1000, slot: 12}
+      - {id: particles, category: cosmetic, name: "Частицы", icon: BLAZE_POWDER, price: 500, slot: 13}
+      - {id: hat, category: cosmetic, name: "Шляпа", icon: LEATHER_HELMET, price: 200, slot: 14}
+      - {id: rename, category: cosmetic, name: "/rename (бирка)", icon: NAME_TAG, price: 150, slot: 15}
+      - {id: case_common, category: cases, name: "Обычный кейс", icon: CHEST, price: 200, slot: 12}
+      - {id: case_rare, category: cases, name: "Редкий кейс", icon: ENDER_CHEST, price: 500, slot: 14}
+      - {id: boost_x2, category: boosts, name: "Буст x2 Эхо на 1 час", icon: GLOWSTONE_DUST, price: 800, slot: 12}
+      # TODO: реализуется кодом (HomeBonus, +1 к лимиту тира); включить enabled: true после проверки на сервере
+      - {id: home_plus1, category: boosts, name: "+1 дом на 7 дней", icon: OAK_DOOR, price: 400, slot: 14, enabled: false}
+  # /donate: ссылка берётся из donate.url (должна совпадать с URL EasyDonate)
+  donate:
+    button: "[Открыть магазин привилегий]"
+    line: "&7Привилегии ускоряют Эхо, но не дают силы"
+  # /rules: 5 строк
+  rules:
+    - "1. Без читов и запрещённых модов."
+    - "2. Без гриферства: чужие постройки не трогаем."
+    - "3. Без спама и флуда в чате."
+    - "4. Уважай других игроков и администрацию."
+    - "5. Донат не даёт силы — только ускоряет Эхо."
+  # Подсказки в чат, ротация по кругу (интервал — tips-interval-seconds)
+  tips:
+    - "Эхо тратится на косметику и кейсы — /shop"
+    - "Квестовый Мастер в хабе даёт 3 задания в день — /quests"
+    - "Донат ускоряет Эхо, но не даёт силы — /donate"
+    - "/help — все команды"
+    - "BedWars победа = 100 Эхо, SkyWars убийство = +Эхо"
+
+# Выдача товаров /shop: команды консоли, %player% = ник. Команды с «parent» плагин пропускает:
+# донат-тиры через магазин не выдаются. fatecore boost / fatecore case — админ-команды FateCore (консоль и owner).
+shop:
+  rewards:
+    prefix:
+      - "lp user %player% permission set fatecore.cosmetic.prefix true"
+    pet:
+      - "lp user %player% permission set fatecore.cosmetic.pet true"
+    particles:
+      - "lp user %player% permission set fatecore.cosmetic.particles true"
+    hat:
+      - "lp user %player% permission set essentials.hat true"
+    rename:
+      - "give %player% minecraft:name_tag 1"
+    case_common:
+      - "fatecore case %player% common"
+    case_rare:
+      - "fatecore case %player% rare"
+    boost_x2:
+      - "fatecore boost %player% 2.0 3600"
+    home_plus1: []      # TODO: реализуется кодом (+1 к лимиту тира), товар пока enabled: false
