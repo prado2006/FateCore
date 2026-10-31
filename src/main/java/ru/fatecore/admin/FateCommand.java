@@ -1,9 +1,11 @@
 package ru.fatecore.admin;
 
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import ru.fatecore.FateCore;
 import ru.fatecore.classes.ClassManager;
@@ -20,10 +22,12 @@ import ru.fatecore.util.Msg;
  *   reload                          — fatecore.reload (admin, owner)
  *   class                           — fatecore.class.use
  *   npc, bwwin, boost, case         — fatecore.admin.* (только owner и консоль)
+ * Консоль (ConsoleCommandSender) всегда проходит проверку прав для bwwin.
  * boost и case вызываются из shop.rewards (консоль). Привилегий и донат-групп эти команды не выдают.
  */
 public final class FateCommand implements CommandExecutor {
     private static final String USAGE = "&7/fatecore <reload|class|npc|bwwin|boost|case>";
+    private static final String SERVER_PREFIX = "§6[Сервер]§r ";
 
     private final FateCore plugin;
     private final ClassManager classes;
@@ -80,29 +84,56 @@ public final class FateCommand implements CommandExecutor {
                 boolean ok = npc.respawn();
                 Msg.send(sender, ok ? "&aКвестовый Мастер пересоздан в quest.npc.location." : "&cМир из quest.npc.location не загружен.");
             }
-            case "bwwin" -> {
-                if (!sender.hasPermission("fatecore.admin.bwwin")) {
-                    Msg.send(sender, "&cНет прав.");
-                    return true;
-                }
-                if (args.length < 2) {
-                    Msg.send(sender, "&7/fatecore bwwin <игрок>");
-                    return true;
-                }
-                Player target = Bukkit.getPlayerExact(args[1]);
-                if (target == null) {
-                    Msg.send(sender, "&cИгрок не в сети.");
-                    return true;
-                }
-                earn.addBedwarsWinEcho(target);
-                quests.addProgress(target, QuestManager.Quest.BEDWARS, 1);
-                Msg.send(sender, "&aПобеда BedWars засчитана: " + target.getName());
-            }
+            case "bwwin" -> bwWin(sender, args);
             case "boost" -> boost(sender, args);
             case "case" -> giveCase(sender, args);
             default -> Msg.send(sender, USAGE);
         }
         return true;
+    }
+
+    /** /fatecore bwwin <ник> — засчитать победу в BedWars (Эхо + квест). Консоль всегда допускается. */
+    private void bwWin(CommandSender sender, String[] args) {
+        boolean allowed = sender instanceof ConsoleCommandSender
+                || sender.hasPermission("fatecore.admin.bwwin");
+        if (!allowed) {
+            serverMsg(sender, "§cУ вас нет прав на эту команду.");
+            return;
+        }
+        if (args.length < 2) {
+            serverMsg(sender, "§7Использование: /fatecore bwwin <ник>");
+            return;
+        }
+
+        String name = args[1];
+        Player target = Bukkit.getPlayerExact(name);
+        if (target == null) {
+            // Проверяем, знает ли сервер такого игрока (для понятного сообщения).
+            OfflinePlayer off = Bukkit.getOfflinePlayerIfCached(name);
+            if (off == null) {
+                serverMsg(sender, "§cИгрок не найден: §f" + name);
+            } else {
+                serverMsg(sender, "§cИгрок §f" + name + " §cсейчас не в сети — победа не засчитана.");
+            }
+            return;
+        }
+
+        earn.addBedwarsWinEcho(target);
+        quests.addProgress(target, QuestManager.Quest.BEDWARS, 1);
+
+        serverMsg(sender, "§aПобеда засчитана: §f" + target.getName());
+        serverMsg(sender, "§aЭхо за победу начислено: §f" + target.getName() + "§a, квест BedWars засчитан.");
+    }
+
+    /**
+     * Сообщение от имени Сервера: отправителю команды и в консоль (если отправитель — игрок).
+     */
+    private void serverMsg(CommandSender sender, String text) {
+        String full = SERVER_PREFIX + text;
+        sender.sendMessage(full);
+        if (!(sender instanceof ConsoleCommandSender)) {
+            Bukkit.getConsoleSender().sendMessage(full);
+        }
     }
 
     /** /fatecore boost <игрок> <множитель 1.0–5.0> <секунды ≤ 604800> — временный множитель Эхо. */
