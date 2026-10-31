@@ -1,0 +1,62 @@
+name: FateCore
+version: '${project.version}'
+main: ru.fatecore.FateCore
+api-version: '1.20'
+description: Эхо Судьбы — сервер выбора пути
+authors: [FateCore]
+depend: [AuthMe, LuckPerms, Vault, Essentials]
+softdepend: [PlaceholderAPI, Multiverse-Core]
+
+commands:
+  echo:
+    description: Баланс Эхо
+    usage: /echo
+  help:
+    description: Список команд сервера
+    usage: /help
+  shop:
+    description: Магазин за Эхо
+    usage: /shop
+  quests:
+    description: Задания Квестового Мастера
+    usage: /quests
+  donate:
+    description: Привилегии
+    usage: /donate
+  rules:
+    description: Правила сервера
+    usage: /rules
+  fatecore:
+    description: Служебные команды FateCore
+    usage: /fatecore <reload|class|npc|bwwin|boost|case>
+
+permissions:
+  fatecore.portal.use:
+    description: Пользоваться порталами в Survival/BedWars/SkyWars
+    default: false
+  fatecore.class.use:
+    description: Выбирать класс
+    default: false
+  fatecore.reload:
+    description: /fatecore reload
+    default: false
+  fatecore.admin.npc:
+    description: /fatecore npc
+    default: false
+  fatecore.admin.bwwin:
+    description: /fatecore bwwin
+    default: false
+  fatecore.admin.boost:
+    description: /fatecore boost (временный множитель Эхо, только консоль и owner)
+    default: false
+  fatecore.admin.case:
+    description: /fatecore case (предмет-кейс, только консоль и owner)
+    default: false
+  fatecore.admin.*:
+    description: Все админ-права FateCore (только owner)
+    default: false
+    children:
+      fatecore.admin.npc: true
+      fatecore.admin.bwwin: true
+      fatecore.admin.boost: true
+      fatecore.admin.case: true
