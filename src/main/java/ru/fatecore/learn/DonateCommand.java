@@ -1,19 +1,11 @@
 package ru.fatecore.learn;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import ru.fatecore.FateCore;
-import ru.fatecore.util.Auth;
-import ru.fatecore.util.Msg;
+import ru.fatecore.FateCore; // <--- ВОТ ЭТОТ ИМПОРТ БЫЛ ПРОПУЩЕН
 
-/** /donate — кликабельная ссылка donate.url (магазин EasyDonate) + строка learn.donate.line. */
 public final class DonateCommand implements CommandExecutor {
     private final FateCore plugin;
 
@@ -22,22 +14,28 @@ public final class DonateCommand implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        if (sender instanceof Player p && !Auth.isAuthed(p)) {
-            Msg.send(p, "&cСначала /login");
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        if (!(sender instanceof Player p)) {
+            sender.sendMessage("Только для игроков.");
             return true;
         }
-        String url = plugin.getConfig().getString("donate.url", "");
-        String button = plugin.getConfig().getString("learn.donate.button", "[Открыть магазин привилегий]");
-        if (sender instanceof Player p) {
-            p.sendMessage(Component.text(Msg.c(button), NamedTextColor.GOLD, TextDecoration.UNDERLINED)
-                    .clickEvent(ClickEvent.openUrl(url))
-                    .hoverEvent(HoverEvent.showText(Component.text(url))));
-        } else {
-            sender.sendMessage(url);
-        }
-        Msg.raw(sender, plugin.getConfig().getString("learn.donate.line",
-                "&7Привилегии ускоряют Эхо, но не дают силы"));
+
+        String url = plugin.getConfig().getString("donate.url", "https://easyDonate.example/fatecore");
+        String line = plugin.getConfig().getString("learn.donate.line", "&7Привилегии ускоряют Эхо, но не дают силы");
+
+        p.sendMessage("§8§m--------------------------------");
+        p.sendMessage("§6§lПРИВИЛЕГИИ §eЭХО СУДЬБЫ");
+        p.sendMessage("§7");
+        p.sendMessage(line.replace('&', '§'));
+        p.sendMessage("§7");
+        
+        net.kyori.adventure.text.Component link = net.kyori.adventure.text.Component.text("[Открыть магазин привилегий]", net.kyori.adventure.text.format.NamedTextColor.GREEN, net.kyori.adventure.text.format.TextDecoration.UNDERLINED)
+            .clickEvent(net.kyori.adventure.text.event.ClickEvent.openUrl(url))
+            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text(url)));
+        
+        p.sendMessage(link);
+        p.sendMessage("§8§m--------------------------------");
+        
         return true;
     }
 }
