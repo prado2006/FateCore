@@ -23,42 +23,15 @@ import ru.fatecore.echo.EchoCommand;
 import ru.fatecore.echo.EchoManager;
 import ru.fatecore.echo.EchoNotifier;
 import ru.fatecore.gui.GuiListener;
-import ru.fatecore.learn.BountyCommand;
-import ru.fatecore.learn.BountyListener;
-import ru.fatecore.learn.BountyManager;
-import ru.fatecore.learn.DailyCommand;
-import ru.fatecore.learn.DailyListener;
-import ru.fatecore.learn.DailyService;
-import ru.fatecore.learn.DonateCommand;
-import ru.fatecore.learn.HelpCommand;
-import ru.fatecore.learn.LobbyCommand;
-import ru.fatecore.learn.PlaytimeCommand;
-import ru.fatecore.learn.PlaytimeTask;
-import ru.fatecore.learn.RulesCommand;
-import ru.fatecore.learn.ShopCommand;
-import ru.fatecore.learn.ShopGui;
-import ru.fatecore.learn.TipsTask;
-import ru.fatecore.learn.AuthMeLoginBridge;
-import ru.fatecore.menu.DonateGui;
-import ru.fatecore.menu.HelpGui;
-import ru.fatecore.menu.MenuCommand;
-import ru.fatecore.menu.MenuItems;
-import ru.fatecore.menu.PlayerItemListener;
+import ru.fatecore.learn.*;
+import ru.fatecore.menu.*;
 import ru.fatecore.onboarding.OnboardingListener;
 import ru.fatecore.perks.HomeBonus;
 import ru.fatecore.perks.PerkListener;
 import ru.fatecore.perks.TierRules;
 import ru.fatecore.portal.PortalListener;
 import ru.fatecore.portal.PortalManager;
-import ru.fatecore.quest.BlockBreakListener;
-import ru.fatecore.quest.DailyResetTask;
-import ru.fatecore.quest.FatePlaceholders;
-import ru.fatecore.quest.PlayerDeathListener;
-import ru.fatecore.quest.QuestCommand;
-import ru.fatecore.quest.QuestGui;
-import ru.fatecore.quest.QuestListener;
-import ru.fatecore.quest.QuestManager;
-import ru.fatecore.quest.QuestNpc;
+import ru.fatecore.quest.*;
 import ru.fatecore.rotation.RotationManager;
 import ru.fatecore.util.VoidListener;
 import ru.fatecore.util.YamlStore;
@@ -129,16 +102,22 @@ public final class FateCore extends JavaPlugin {
         pm.registerEvents(help, this);
         pm.registerEvents(new VoidListener(this), this);
         pm.registerEvents(new CombatListener(combat), this);
+        
+        // НОВЫЕ РЕГИСТРАЦИИ (Антиспам и ТПА-обход)
+        pm.registerEvents(new ChatAntiSpam(), this);
+        pm.registerEvents(new TpaBypassListener(), this);
 
         // --- Предметы меню (Компас и Звезда) ---
         MenuItems menuItems = new MenuItems(this);
         DonateGui donateGui = new DonateGui(this);
         HelpGui helpGui = new HelpGui(this, donateGui);
-        PlayerItemListener itemListener = new PlayerItemListener(this, menuItems, classes, helpGui, donateGui, false);
+        MainMenuGui mainMenuGui = new MainMenuGui(this, classes, helpGui, donateGui, combat);
+        PlayerItemListener itemListener = new PlayerItemListener(this, menuItems, classes, helpGui, donateGui, mainMenuGui, combat);
 
         pm.registerEvents(itemListener, this);
         pm.registerEvents(helpGui, this);
         pm.registerEvents(donateGui, this);
+        pm.registerEvents(mainMenuGui, this);
 
         // --- Уведомления (AuthMe) ---
         boolean authMe = pm.isPluginEnabled("AuthMe");
@@ -167,7 +146,7 @@ public final class FateCore extends JavaPlugin {
         getCommand("lobby").setExecutor(new LobbyCommand(this, combat));
         getCommand("daily").setExecutor(new DailyCommand(daily));
         getCommand("playtime").setExecutor(new PlaytimeCommand(dataStore));
-        getCommand("bounty").setExecutor(new BountyCommand(echoService, bounties));
+        getCommand("bounty").setExecutor(new BountyCommand(echoService, bounties, dataStore));
 
         // --- Задачи (Таски) ---
         npc.spawnWhenReady();
@@ -175,7 +154,6 @@ public final class FateCore extends JavaPlugin {
         new TipsTask(this).start();
         new DailyResetTask(this, quests).start();
         
-        // Награда за игру (раз в минуту)
         java.util.function.Predicate<Player> eligible = authMe
                 ? p -> fr.xephi.authme.api.v3.AuthMeApi.getInstance().isAuthenticated(p)
                 : p -> true;
