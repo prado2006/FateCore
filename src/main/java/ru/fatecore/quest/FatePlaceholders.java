@@ -3,7 +3,7 @@ package ru.fatecore.quest;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
-import ru.fatecore.FateCore;
+import ru.fatecore.FateCore; // <--- ОБЯЗАТЕЛЬНО ДОЛЖНО БЫТЬ ТУТ
 import ru.fatecore.api.IDataStore;
 import ru.fatecore.classes.ClassManager;
 import ru.fatecore.combat.CombatManager;
@@ -71,32 +71,19 @@ public final class FatePlaceholders extends PlaceholderExpansion {
         UUID id = player.getUniqueId();
 
         switch (params.toLowerCase()) {
-            // --- Старые плейсхолдеры (теперь работают!) ---
-            case "class":
-                return classes.getTitle(id);
-            case "echo":
-                return echo.format(echo.getEcho(player));
-            case "quest_progress":
-                return quests.progressString(id);
-            case "quest_done":
-                return String.valueOf(quests.dayCompleted(id));
-            case "featured":
-                return rotation.getBoostedMode();
-            case "home":
-                return player.isOnline() ? String.valueOf(homeBonus.limit(player.getPlayer())) : "0";
-
-            // --- Новые плейсхолдеры ---
-            case "playtime":
-                return PlaytimeCommand.format(dataStore.getLong(id, PlaytimeTask.KEY, 0));
-            case "streak":
-                return String.valueOf(daily.effectiveStreak(id));
-            case "bounty":
-                return String.valueOf(bounties.get(id));
-            case "combat":
-                return player.isOnline() && combat.isTagged(id) ? "Да" : "Нет";
-                
-            default:
-                return null;
+            case "class": return classes.getTitle(id);
+            case "echo": return echo.format(echo.getEcho(player));
+            case "quest_progress": return quests.progressString(id);
+            case "quest_done": return quests.dayCompleted(id) + "/3";
+            case "featured": 
+                String mode = rotation.getBoostedMode();
+                return mode.substring(0, 1).toUpperCase() + mode.substring(1);
+            case "home": return player.isOnline() ? String.valueOf(homeBonus.limit(player.getPlayer())) : "0";
+            case "playtime": return PlaytimeCommand.format(dataStore.getLong(id, PlaytimeTask.KEY, 0));
+            case "streak": return String.valueOf(daily.effectiveStreak(id));
+            case "bounty": return String.valueOf(bounties.get(id));
+            case "combat": return player.isOnline() && combat.isTagged(id) ? "Да" : "Нет";
+            default: return null;
         }
     }
 }
