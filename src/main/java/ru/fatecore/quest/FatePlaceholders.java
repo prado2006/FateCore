@@ -2,6 +2,7 @@ package ru.fatecore.quest;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 import ru.fatecore.FateCore;
 import ru.fatecore.api.IDataStore;
 import ru.fatecore.classes.ClassManager;
@@ -70,8 +71,21 @@ public final class FatePlaceholders extends PlaceholderExpansion {
         UUID id = player.getUniqueId();
 
         switch (params.toLowerCase()) {
+            // --- Старые плейсхолдеры (теперь работают!) ---
+            case "class":
+                return classes.getTitle(id);
             case "echo":
                 return echo.format(echo.getEcho(player));
+            case "quest_progress":
+                return quests.progressString(id);
+            case "quest_done":
+                return String.valueOf(quests.dayCompleted(id));
+            case "featured":
+                return rotation.getBoostedMode();
+            case "home":
+                return player.isOnline() ? String.valueOf(homeBonus.limit(player.getPlayer())) : "0";
+
+            // --- Новые плейсхолдеры ---
             case "playtime":
                 return PlaytimeCommand.format(dataStore.getLong(id, PlaytimeTask.KEY, 0));
             case "streak":
@@ -81,17 +95,6 @@ public final class FatePlaceholders extends PlaceholderExpansion {
             case "combat":
                 return player.isOnline() && combat.isTagged(id) ? "Да" : "Нет";
                 
-            // --- СТАРЫЕ ПЛЕЙСХОЛДЕРЫ ВРЕМЕННО ОТКЛЮЧЕНЫ ---
-            // Если вы захотите их вернуть, вам нужно узнать точные названия методов 
-            // в файлах ClassManager, QuestManager, RotationManager и HomeBonus.
-            /*
-            case "class": return classes.getClassName(id);
-            case "quest_progress": return String.valueOf(quests.getProgress(id));
-            case "quest_done": return String.valueOf(quests.getDoneCount(id));
-            case "featured": return rotation.getMultiplierLabel();
-            case "home": return homeBonus.getHomeStatus(player);
-            */
-            
             default:
                 return null;
         }
