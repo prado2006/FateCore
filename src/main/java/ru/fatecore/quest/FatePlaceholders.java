@@ -3,7 +3,7 @@ package ru.fatecore.quest;
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
-import ru.fatecore.FateCore; // <--- ОБЯЗАТЕЛЬНО ДОЛЖНО БЫТЬ ТУТ
+import ru.fatecore.FateCore; // <--- Проверь, что эта строчка есть!
 import ru.fatecore.api.IDataStore;
 import ru.fatecore.classes.ClassManager;
 import ru.fatecore.combat.CombatManager;
@@ -46,24 +46,16 @@ public final class FatePlaceholders extends PlaceholderExpansion {
     }
 
     @Override
-    public String getIdentifier() {
-        return "fatecore";
-    }
+    public String getIdentifier() { return "fatecore"; }
 
     @Override
-    public String getAuthor() {
-        return "FateCore";
-    }
+    public String getAuthor() { return "FateCore"; }
 
     @Override
-    public String getVersion() {
-        return plugin.getDescription().getVersion();
-    }
+    public String getVersion() { return plugin.getDescription().getVersion(); }
 
     @Override
-    public boolean persist() {
-        return true;
-    }
+    public boolean persist() { return true; }
 
     @Override
     public String onRequest(OfflinePlayer player, String params) {
