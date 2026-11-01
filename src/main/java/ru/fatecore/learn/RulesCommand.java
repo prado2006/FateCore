@@ -3,7 +3,7 @@ package ru.fatecore.learn;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import ru.fatecore.FateCore;
+import ru.fatecore.FateCore; // <-- ВОТ ЭТА СТРОЧКА БЫЛА ПРОПУЩЕНА
 
 import java.util.List;
 
@@ -23,7 +23,6 @@ public final class RulesCommand implements CommandExecutor {
         sender.sendMessage("§7");
         
         if (rules.isEmpty()) {
-            // Если правила в конфиге пусты, показываем базовые (без ошибок конфига)
             sender.sendMessage("§61. §fБез читов и запрещённых модов.");
             sender.sendMessage("§62. §fБез гриферства: чужие постройки не трогаем.");
             sender.sendMessage("§63. §fБез спама и флуда в чате.");
