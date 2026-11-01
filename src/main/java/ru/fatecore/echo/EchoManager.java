@@ -25,11 +25,11 @@ public final class EchoManager {
         return eco.getBalance(p);
     }
 
-    public void addEcho(Player p, int amount) {
+    public void addEcho(OfflinePlayer p, int amount) {
         addEcho(p, (double) amount);
     }
 
-    public void addEcho(Player p, double amount) {
+    public void addEcho(OfflinePlayer p, double amount) {
         if (amount <= 0) return;
         eco.depositPlayer(p, amount);
     }
