@@ -21,6 +21,7 @@ import ru.fatecore.learn.RulesCommand;
 import ru.fatecore.learn.ShopCommand;
 import ru.fatecore.learn.ShopGui;
 import ru.fatecore.learn.TipsTask;
+import ru.fatecore.menu.*; // Добавлен импорт меню
 import ru.fatecore.onboarding.OnboardingListener;
 import ru.fatecore.perks.HomeBonus;
 import ru.fatecore.perks.PerkListener;
@@ -120,6 +121,27 @@ public final class FateCore extends JavaPlugin {
             placeholders = new FatePlaceholders(this, quests, echo, classes, rotation, new HomeBonus(this));
             placeholders.register();
         }
+
+        // --- Меню предметов (Компас и Звезда) ---
+        MenuItems menuItems = new MenuItems(this);
+        DonateGui donateGui = new DonateGui(this);
+        HelpGui helpGui = new HelpGui(this, donateGui);
+
+        boolean authMe = pm.isPluginEnabled("AuthMe");
+        PlayerItemListener itemListener =
+                new PlayerItemListener(this, menuItems, classes, helpGui, donateGui, !authMe);
+
+        pm.registerEvents(itemListener, this);
+        pm.registerEvents(helpGui, this);
+        pm.registerEvents(donateGui, this);
+
+        if (authMe) {
+            pm.registerEvents(new AuthMeHook(itemListener), this);
+        }
+
+        getCommand("menu").setExecutor(new MenuCommand(itemListener));
+        // ----------------------------------------
+
         getLogger().info("FateCore включён.");
     }
 
