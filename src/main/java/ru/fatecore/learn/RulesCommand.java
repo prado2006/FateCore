@@ -3,12 +3,10 @@ package ru.fatecore.learn;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import ru.fatecore.FateCore;
-import ru.fatecore.util.Auth;
-import ru.fatecore.util.Msg;
 
-/** /rules — 5 строк из learn.rules (только после /login). */
+import java.util.List;
+
 public final class RulesCommand implements CommandExecutor {
     private final FateCore plugin;
 
@@ -17,15 +15,27 @@ public final class RulesCommand implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        if (sender instanceof Player p && !Auth.isAuthed(p)) {
-            Msg.send(p, "&cСначала /login");
-            return true;
+    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+        List<String> rules = plugin.getConfig().getStringList("learn.rules");
+        
+        sender.sendMessage("§8§m--------------------------------");
+        sender.sendMessage("§6§lПРАВИЛА СЕРВЕРА §eЭХО СУДЬБЫ");
+        sender.sendMessage("§7");
+        
+        if (rules.isEmpty()) {
+            // Если правила в конфиге пусты, показываем базовые (без ошибок конфига)
+            sender.sendMessage("§61. §fБез читов и запрещённых модов.");
+            sender.sendMessage("§62. §fБез гриферства: чужие постройки не трогаем.");
+            sender.sendMessage("§63. §fБез спама и флуда в чате.");
+            sender.sendMessage("§64. §fУважай других игроков и администрацию.");
+            sender.sendMessage("§65. §fДонат не даёт силы — только ускоряет Эхо.");
+        } else {
+            for (String rule : rules) {
+                sender.sendMessage(rule.replace('&', '§'));
+            }
         }
-        Msg.raw(sender, "&6=== Правила ===");
-        for (String line : plugin.getConfig().getStringList("learn.rules")) {
-            Msg.raw(sender, "&f" + line);
-        }
+        
+        sender.sendMessage("§8§m--------------------------------");
         return true;
     }
 }
