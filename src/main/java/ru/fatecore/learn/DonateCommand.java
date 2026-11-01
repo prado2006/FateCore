@@ -4,12 +4,18 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import ru.fatecore.FateCore; // <--- ВОТ ЭТОТ ИМПОРТ БЫЛ ПРОПУЩЕН
+import org.bukkit.plugin.java.JavaPlugin; // <-- Используем стандартный JavaPlugin
+
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 
 public final class DonateCommand implements CommandExecutor {
-    private final FateCore plugin;
+    private final JavaPlugin plugin;
 
-    public DonateCommand(FateCore plugin) {
+    public DonateCommand(JavaPlugin plugin) {
         this.plugin = plugin;
     }
 
@@ -29,9 +35,9 @@ public final class DonateCommand implements CommandExecutor {
         p.sendMessage(line.replace('&', '§'));
         p.sendMessage("§7");
         
-        net.kyori.adventure.text.Component link = net.kyori.adventure.text.Component.text("[Открыть магазин привилегий]", net.kyori.adventure.text.format.NamedTextColor.GREEN, net.kyori.adventure.text.format.TextDecoration.UNDERLINED)
-            .clickEvent(net.kyori.adventure.text.event.ClickEvent.openUrl(url))
-            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(net.kyori.adventure.text.Component.text(url)));
+        Component link = Component.text("[Открыть магазин привилегий]", NamedTextColor.GREEN, TextDecoration.UNDERLINED)
+            .clickEvent(ClickEvent.openUrl(url))
+            .hoverEvent(HoverEvent.showText(Component.text(url)));
         
         p.sendMessage(link);
         p.sendMessage("§8§m--------------------------------");
