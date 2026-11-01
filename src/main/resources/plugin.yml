@@ -32,6 +32,23 @@ commands:
   menu:
     description: Вернуть предметы меню (Компас и Звезду)
     usage: /menu
+  lobby:
+    description: Вернуться в хаб
+    usage: /lobby
+    aliases: [hub]
+    permission: fatecore.lobby
+  daily:
+    description: Ежедневная награда
+    usage: /daily
+    permission: fatecore.daily
+  playtime:
+    description: Время игры
+    usage: /playtime
+    permission: fatecore.playtime
+  bounty:
+    description: Назначить награду за голову игрока
+    usage: /bounty <ник> <сумма>
+    permission: fatecore.bounty
 
 permissions:
   fatecore.portal.use:
@@ -63,3 +80,11 @@ permissions:
       fatecore.admin.bwwin: true
       fatecore.admin.boost: true
       fatecore.admin.case: true
+  fatecore.lobby:
+    default: true
+  fatecore.daily:
+    default: true
+  fatecore.playtime:
+    default: true
+  fatecore.bounty:
+    default: true
