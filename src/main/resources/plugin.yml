@@ -29,6 +29,9 @@ commands:
   fatecore:
     description: Служебные команды FateCore
     usage: /fatecore <reload|class|npc|bwwin|boost|case>
+  menu:
+    description: Вернуть предметы меню (Компас и Звезду)
+    usage: /menu
 
 permissions:
   fatecore.portal.use:
