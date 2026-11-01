@@ -1,22 +1,55 @@
 name: Build FateCore
-on: [push, workflow_dispatch]
+
+on:
+  push:
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - name: Unzip project
-        run: unzip -o FateCore-fixed.zip
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unpack FateCore-fixed.zip
+        run: |
+          set -euo pipefail
+          rm -rf project_dir
+          mkdir -p project_dir
+          unzip -q -o FateCore-fixed.zip -d project_dir
+
+      - name: Locate pom.xml
+        run: |
+          set -euo pipefail
+          # Берём самый "мелкий" pom.xml (минимальная глубина), игнорируя __MACOSX и target
+          POM=$(find project_dir -name pom.xml \
+                  -not -path '*/__MACOSX/*' -not -path '*/target/*' \
+                  -printf '%d %p\n' | sort -n | head -n 1 | cut -d' ' -f2-)
+          if [ -z "$POM" ]; then
+            echo "::error::pom.xml не найден внутри FateCore-fixed.zip"
+            find project_dir -maxdepth 3
+            exit 1
+          fi
+          PROJECT_DIR=$(dirname "$POM")
+          echo "Найден pom.xml: $POM"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
+          cache-dependency-path: 'project_dir/**/pom.xml'
+
       - name: Build with Maven
+        working-directory: ${{ env.PROJECT_DIR }}
         run: mvn clean package -B || mvn clean package -B -Pauthme-5
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: FateCore-jar
-          path: target/FateCore.jar
+          path: project_dir/**/target/FateCore.jar
+          if-no-files-found: error
