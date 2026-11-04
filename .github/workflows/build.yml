@@ -1,34 +1,54 @@
 name: Build FateCore
-on: [push, workflow_dispatch]
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Extract project
-        run: |
-          unzip -o FateCore-FINAL.zip
-          if [ ! -f pom.xml ]; then
-            POM_DIR=$(find . -mindepth 1 -maxdepth 2 -name pom.xml -exec dirname {} \; | head -n 1)
-            if [ -n "$POM_DIR" ]; then
-              mv "$POM_DIR"/* .
-              rmdir "$POM_DIR"
-            fi
-          fi
-          
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
+          distribution: temurin
           java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-          
+          cache: maven
+
+      - name: Unpack ZIP and locate pom.xml
+        id: locate
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -d '' ZIPS < <(find . -maxdepth 1 -type f -iname '*.zip' -print0)
+          if [ "${#ZIPS[@]}" -eq 0 ]; then
+            echo "::error::В корне репозитория нет .zip файла"
+            exit 1
+          fi
+          echo "Найден архив: ${ZIPS[0]}"
+          rm -rf project_dir && mkdir -p project_dir
+          unzip -q -o "${ZIPS[0]}" -d project_dir
+          POM=$(find project_dir -name pom.xml -not -path '*/target/*' -printf '%d %p\n' | sort -n | head -n1 | cut -d' ' -f2-)
+          if [ -z "$POM" ]; then
+            echo "::error::pom.xml не найден внутри архива"
+            find project_dir | head -100
+            exit 1
+          fi
+          DIR=$(dirname "$POM")
+          echo "Проект: $DIR"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+
       - name: Build with Maven
+        working-directory: ${{ steps.locate.outputs.dir }}
         run: mvn clean package -B || mvn clean package -B -Pauthme-5
-        
-      - name: Upload artifact
+
+      - name: Upload FateCore.jar
         uses: actions/upload-artifact@v4
         with:
-          name: FateCore-jar
-          path: target/FateCore.jar
+          name: FateCore
+          path: ${{ steps.locate.outputs.dir }}/target/FateCore.jar
+          if-no-files-found: error
