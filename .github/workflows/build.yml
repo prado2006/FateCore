@@ -1,68 +1,81 @@
 name: Build FateCore
 
+# 1. Запуск при пуше в ветку main (и вручную из вкладки Actions)
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
+    branches: [ main ]
   workflow_dispatch:
-
-permissions:
-  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      # Клонируем репозиторий (в корне лежит FateCore-v26.zip)
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Unpack FateCore-OPTIMIZED.zip
-        run: |
-          if [ ! -f FateCore-OPTIMIZED.zip ]; then
-            echo "::error::FateCore-OPTIMIZED.zip not found in repository root"
-            exit 1
-          fi
-          rm -rf "$RUNNER_TEMP/fatecore-src"
-          mkdir -p "$RUNNER_TEMP/fatecore-src"
-          unzip -q -o FateCore-OPTIMIZED.zip -d "$RUNNER_TEMP/fatecore-src"
-
-      - name: Locate pom.xml
-        run: |
-          POM=$(find "$RUNNER_TEMP/fatecore-src" -name pom.xml -not -path '*/__MACOSX/*' -printf '%d %p\n' | sort -n | head -n 1 | cut -d' ' -f2-)
-          if [ -z "$POM" ]; then
-            echo "::error::pom.xml not found inside FateCore-OPTIMIZED.zip"
-            exit 1
-          fi
-          PROJECT_DIR=$(dirname "$POM")
-          echo "Project directory: $PROJECT_DIR"
-          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
-
+      # 2. JDK 17 — нужен для Paper 1.20.1; кэш Maven ускоряет повторные сборки
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+          cache: maven
 
-      - name: Build with Maven
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: mvn clean package -B || mvn clean package -B -Pauthme-5
-
-      - name: Prepare FateCore.jar
+      # 3. Распаковываем архив в отдельную папку, чтобы не мешать файлам репозитория
+      - name: Unzip FateCore-v26.zip
         run: |
-          JAR=$(find "$PROJECT_DIR/target" -maxdepth 1 -name '*.jar' \
-                  ! -name 'original-*' ! -name '*-sources.jar' ! -name '*-javadoc.jar' \
-                  -printf '%s %p\n' | sort -nr | head -n 1 | cut -d' ' -f2-)
-          if [ -z "$JAR" ]; then
-            echo "::error::No jar found in $PROJECT_DIR/target"
+          set -e
+          if [ ! -f FateCore-v26.zip ]; then
+            echo "::error::FateCore-v26.zip не найден в корне репозитория"
+            ls -la
             exit 1
           fi
-          mkdir -p "$RUNNER_TEMP/artifact"
-          cp "$JAR" "$RUNNER_TEMP/artifact/FateCore.jar"
-          ls -l "$RUNNER_TEMP/artifact"
+          mkdir -p project
+          unzip -q -o FateCore-v26.zip -d project
 
-      - name: Upload FateCore.jar
+      # Ищем pom.xml: сначала в корне распакованного проекта, затем во вложенных папках
+      # (например, project/FateCore/pom.xml). Берём самый «мелкий» pom.xml, игнорируя __MACOSX.
+      - name: Locate pom.xml
+        id: locate
+        run: |
+          set -e
+          POM=$(find project -name pom.xml -not -path "*/__MACOSX/*" | awk '{print length($0) " " $0}' | sort -n | head -n 1 | cut -d' ' -f2-)
+          if [ -z "$POM" ]; then
+            echo "::error::pom.xml не найден внутри архива"
+            find project -maxdepth 3
+            exit 1
+          fi
+          DIR=$(dirname "$POM")
+          echo "Найден pom.xml: $POM"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+
+      # 4. Сборка Maven из найденной папки (запасной вариант — профиль authme-5, как раньше)
+      - name: Build with Maven
+        working-directory: ${{ steps.locate.outputs.dir }}
+        run: mvn clean package -B || mvn clean package -B -Pauthme-5
+
+      # Определяем итоговый jar (без original-*, *-sources, *-javadoc)
+      - name: Find built jar
+        id: jar
+        run: |
+          set -e
+          JAR=$(find "${{ steps.locate.outputs.dir }}/target" -maxdepth 1 -name "*.jar" \
+                  ! -name "original-*" ! -name "*-sources.jar" ! -name "*-javadoc.jar" | head -n 1)
+          if [ -z "$JAR" ]; then
+            echo "::error::Собранный jar не найден в target"
+            ls -la "${{ steps.locate.outputs.dir }}/target" || true
+            exit 1
+          fi
+          echo "Собран: $JAR"
+          echo "path=$JAR" >> "$GITHUB_OUTPUT"
+
+      # 5. Сохраняем jar как артефакт (скачивается на странице запуска во вкладке Actions)
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: FateCore
-          path: ${{ runner.temp }}/artifact/FateCore.jar
+          path: ${{ steps.jar.outputs.path }}
           if-no-files-found: error
+          retention-days: 30
