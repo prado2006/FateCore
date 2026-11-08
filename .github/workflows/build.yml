@@ -1,6 +1,6 @@
 name: Build FateCore
 
-# 1. Запуск при пуше в ветку main (и вручную из вкладки Actions)
+# Запуск при пуше в main (и вручную из вкладки Actions)
 on:
   push:
     branches: [ main ]
@@ -11,20 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Клонируем репозиторий (в корне лежит FateCore-v26.zip)
+      # 1. Клонируем репозиторий (в корне лежит FateCore-v26.zip)
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. JDK 17 — нужен для Paper 1.20.1; кэш Maven ускоряет повторные сборки
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-          cache: maven
-
-      # 3. Распаковываем архив в отдельную папку, чтобы не мешать файлам репозитория
-      - name: Unzip FateCore-v26.zip
+      # 2. Распаковка ZIP и поиск pom.xml — ДО setup-java, чтобы кэшу было что хешировать
+      - name: Unzip FateCore-v26.zip and locate pom.xml
+        id: locate
         run: |
           set -e
           if [ ! -f FateCore-v26.zip ]; then
@@ -35,28 +28,31 @@ jobs:
           mkdir -p project
           unzip -q -o FateCore-v26.zip -d project
 
-      # Ищем pom.xml: сначала в корне распакованного проекта, затем во вложенных папках
-      # (например, project/FateCore/pom.xml). Берём самый «мелкий» pom.xml, игнорируя __MACOSX.
-      - name: Locate pom.xml
-        id: locate
-        run: |
-          set -e
+          # Берём самый «мелкий» pom.xml (корень архива или вложенная папка вроде project/FateCore/), без __MACOSX
           POM=$(find project -name pom.xml -not -path "*/__MACOSX/*" | awk '{print length($0) " " $0}' | sort -n | head -n 1 | cut -d' ' -f2-)
           if [ -z "$POM" ]; then
             echo "::error::pom.xml не найден внутри архива"
             find project -maxdepth 3
             exit 1
           fi
-          DIR=$(dirname "$POM")
           echo "Найден pom.xml: $POM"
-          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+          echo "dir=$(dirname "$POM")" >> "$GITHUB_OUTPUT"
 
-      # 4. Сборка Maven из найденной папки (запасной вариант — профиль authme-5, как раньше)
+      # 3. JDK 17 (нужен для Paper 1.20.1). Кэш Maven включён только теперь, когда pom.xml уже распакован
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: project/**/pom.xml
+
+      # 4. Сборка (запасной вариант — профиль authme-5, как раньше)
       - name: Build with Maven
         working-directory: ${{ steps.locate.outputs.dir }}
         run: mvn clean package -B || mvn clean package -B -Pauthme-5
 
-      # Определяем итоговый jar (без original-*, *-sources, *-javadoc)
+      # Находим итоговый jar (без original-*, sources, javadoc)
       - name: Find built jar
         id: jar
         run: |
