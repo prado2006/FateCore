@@ -5,78 +5,70 @@ on:
   push:
     branches: [ main, master ]
   pull_request:
-  workflow_dispatch:          # ручной запуск кнопкой "Run workflow"
+  workflow_dispatch:            # ручной запуск кнопкой "Run workflow" во вкладке Actions
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Скачиваем репозиторий (в корне лежит FateCore-v28.zip)
+      # 1. Скачиваем репозиторий (в корне лежит FateCore-v29.zip)
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Распаковываем архив ДО настройки Java.
-      #    Это важно: setup-java с кэшем Maven ищет pom.xml, а он появляется только после распаковки.
-      - name: Unzip FateCore-v28.zip
+      # 2. Распаковываем архив ВО ВРЕМЕННУЮ папку.
+      #    Шаг стоит строго ДО setup-java: кэш Maven ищет **/pom.xml, а он появляется только после распаковки.
+      - name: Unzip FateCore-v29.zip
         run: |
           set -e
-          test -f FateCore-v28.zip || { echo "::error::FateCore-v28.zip не найден в корне репозитория"; ls -la; exit 1; }
-          rm -rf build_src
-          mkdir build_src
-          unzip -q FateCore-v28.zip -d build_src
-
-      # 3. Ищем pom.xml (в корне архива или во вложенной папке) и запоминаем папку проекта
-      - name: Locate project directory (pom.xml)
-        id: locate
-        run: |
-          set -e
-          POM=$(find build_src -name pom.xml -not -path "*/node_modules/*" | awk '{ print length($0) " " $0 }' | sort -n | head -n 1 | cut -d' ' -f2-)
-          if [ -z "$POM" ]; then
-            echo "::error::pom.xml не найден внутри FateCore-v28.zip"
-            find build_src -maxdepth 3
+          if [ ! -f FateCore-v29.zip ]; then
+            echo "::error::FateCore-v29.zip не найден в корне репозитория"
+            ls -la
             exit 1
           fi
-          DIR=$(dirname "$POM")
-          echo "Проект найден в: $DIR"
-          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
-          echo "pom=$POM" >> "$GITHUB_OUTPUT"
+          rm -rf _unzipped
+          mkdir _unzipped
+          unzip -q FateCore-v29.zip -d _unzipped
 
-      # 4. Настраиваем JDK 17 (setup-java v5). Кэш Maven включён и привязан к pom.xml из архива,
-      #    поэтому шаг стоит строго после распаковки.
+      # 3. Если проект лежит во вложенной папке (например, FateCore-v29/), берём именно её.
+      #    Находим самый "мелкий" pom.xml и копируем содержимое его папки в корень рабочей директории,
+      #    чтобы pom.xml оказался рядом с .github, как будто архива и не было.
+      - name: Move project to workspace root
+        run: |
+          set -e
+          POM=$(find _unzipped -name pom.xml | awk '{ print length($0) " " $0 }' | sort -n | head -n 1 | cut -d' ' -f2-)
+          if [ -z "$POM" ]; then
+            echo "::error::pom.xml не найден внутри FateCore-v29.zip"
+            find _unzipped -maxdepth 3
+            exit 1
+          fi
+          SRC_DIR=$(dirname "$POM")
+          echo "Проект найден в: $SRC_DIR"
+          cp -a "$SRC_DIR"/. .
+          rm -rf _unzipped
+          test -f pom.xml || { echo "::error::pom.xml не оказался в корне после копирования"; exit 1; }
+          echo "pom.xml в корне: OK"
+          ls -la
+
+      # 4. JDK 17 через actions/setup-java@v5.
+      #    Кэш Maven включён и безопасен: pom.xml уже лежит в корне.
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
           cache: maven
-          cache-dependency-path: ${{ steps.locate.outputs.pom }}
 
-      # 5. Сборка. Основной профиль (AuthMe 6); при ошибке — запасной профиль authme-5.
+      # 5. Сборка. Основной профиль (AuthMe 6); если не вышло — запасной профиль authme-5.
       - name: Build with Maven
-        working-directory: ${{ steps.locate.outputs.dir }}
-        run: |
-          mvn -B clean package || mvn -B clean package -Pauthme-5
+        run: mvn -B clean package || mvn -B clean package -Pauthme-5
 
-      # 6. Находим собранный jar (без original-*.jar и sources/javadoc)
-      - name: Find built jar
-        id: jar
-        working-directory: ${{ steps.locate.outputs.dir }}
-        run: |
-          JAR=$(find target -maxdepth 1 -name "*.jar" ! -name "original-*" ! -name "*-sources.jar" ! -name "*-javadoc.jar" | head -n 1)
-          if [ -z "$JAR" ]; then
-            echo "::error::jar не найден в target/"
-            ls -la target || true
-            exit 1
-          fi
-          echo "Найден: $JAR"
-          echo "path=${{ steps.locate.outputs.dir }}/$JAR" >> "$GITHUB_OUTPUT"
-
-      # 7. Сохраняем jar в Artifacts (вкладка Actions -> запуск -> Artifacts)
+      # 6. Загружаем готовый jar в Artifacts (Actions -> нужный запуск -> раздел Artifacts).
+      #    original-*.jar не попадает: берём только target/FateCore.jar (finalName из pom.xml).
       - name: Upload jar artifact
         uses: actions/upload-artifact@v4
         with:
           name: FateCore
-          path: ${{ steps.jar.outputs.path }}
+          path: target/FateCore.jar
           if-no-files-found: error
           retention-days: 30
