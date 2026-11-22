@@ -1,74 +1,66 @@
-# .github/workflows/build.yml
-name: Build FateCore
+name: Build FateCore JAR
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
-  workflow_dispatch:            # ручной запуск кнопкой "Run workflow" во вкладке Actions
+    branches: [ "**" ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Скачиваем репозиторий (в корне лежит FateCore-v29.zip)
+      # 1. Выполняем checkout репозитория в рабочую директорию
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Распаковываем архив ВО ВРЕМЕННУЮ папку.
-      #    Шаг стоит строго ДО setup-java: кэш Maven ищет **/pom.xml, а он появляется только после распаковки.
-      - name: Unzip FateCore-v29.zip
+      # 2. Распаковываем FateCore-v31.zip и поднимаем файлы из вложенной папки в корень (если она есть)
+      - name: Unpack FateCore-v31.zip and flatten if nested
         run: |
           set -e
-          if [ ! -f FateCore-v29.zip ]; then
-            echo "::error::FateCore-v29.zip не найден в корне репозитория"
-            ls -la
+          unzip -q FateCore-v31.zip -d _extracted_tmp
+
+          # Удаляем сам архив, чтобы не мешал при перемещении/сборке
+          rm -f FateCore-v31.zip
+
+          # Ищем директорию, содержащую pom.xml (в корне архива или на 1 уровень глубже)
+          POM_PATH=$(find _extracted_tmp -maxdepth 2 -name "pom.xml" -print -quit)
+          if [ -z "$POM_PATH" ]; then
+            echo "Ошибка: pom.xml не найден внутри FateCore-v31.zip"
             exit 1
           fi
-          rm -rf _unzipped
-          mkdir _unzipped
-          unzip -q FateCore-v29.zip -d _unzipped
 
-      # 3. Если проект лежит во вложенной папке (например, FateCore-v29/), берём именно её.
-      #    Находим самый "мелкий" pom.xml и копируем содержимое его папки в корень рабочей директории,
-      #    чтобы pom.xml оказался рядом с .github, как будто архива и не было.
-      - name: Move project to workspace root
-        run: |
-          set -e
-          POM=$(find _unzipped -name pom.xml | awk '{ print length($0) " " $0 }' | sort -n | head -n 1 | cut -d' ' -f2-)
-          if [ -z "$POM" ]; then
-            echo "::error::pom.xml не найден внутри FateCore-v29.zip"
-            find _unzipped -maxdepth 3
-            exit 1
-          fi
-          SRC_DIR=$(dirname "$POM")
-          echo "Проект найден в: $SRC_DIR"
-          cp -a "$SRC_DIR"/. .
-          rm -rf _unzipped
-          test -f pom.xml || { echo "::error::pom.xml не оказался в корне после копирования"; exit 1; }
-          echo "pom.xml в корне: OK"
-          ls -la
+          SRC_DIR=$(dirname "$POM_PATH")
 
-      # 4. JDK 17 через actions/setup-java@v5.
-      #    Кэш Maven включён и безопасен: pom.xml уже лежит в корне.
-      - name: Set up JDK 17
+          # Переносим всё содержимое найденной папки проекта в корень репозитория
+          shopt -s dotglob nullglob
+          mv "$SRC_DIR"/* .
+          shopt -u dotglob nullglob
+
+          # Чистим временную папку
+          rm -rf _extracted_tmp
+
+          # Проверяем, что pom.xml на месте
+          ls -la pom.xml
+
+      # 3. Настраиваем Java 17 строго ПОСЛЕ распаковки архива с pom.xml
+      - name: Set up Java 17
         uses: actions/setup-java@v5
         with:
-          distribution: temurin
+          distribution: 'temurin'
           java-version: '17'
-          cache: maven
+          cache: 'maven'
 
-      # 5. Сборка. Основной профиль (AuthMe 6); если не вышло — запасной профиль authme-5.
+      # 4. Запускаем сборку Maven
       - name: Build with Maven
-        run: mvn -B clean package || mvn -B clean package -Pauthme-5
+        run: mvn clean package
 
-      # 6. Загружаем готовый jar в Artifacts (Actions -> нужный запуск -> раздел Artifacts).
-      #    original-*.jar не попадает: берём только target/FateCore.jar (finalName из pom.xml).
-      - name: Upload jar artifact
+      # 5. Сохраняем готовый .jar файл (исключая original-*.jar, если создается shade/fat jar)
+      - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FateCore
-          path: target/FateCore.jar
+          name: FateCore-jar
+          path: |
+            target/*.jar
+            !target/original-*.jar
           if-no-files-found: error
-          retention-days: 30
